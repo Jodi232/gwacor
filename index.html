@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gwacor — Sistem Kasir</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  </head>
+  <body>
+    <!-- ===== HEADER ===== -->
+    <header>
+      <div class="logo">
+        <div class="logo-icon">G</div>
+        <div class="logo-text">Gwa<span>cor</span></div>
+      </div>
+      <div class="btn-tabs">
+        <button class="tab-btn active" onclick="switchView('kasir', event)">
+          🛒 Kasir
+        </button>
+        <button class="tab-btn" onclick="switchView('riwayat', event)">
+          📋 Riwayat
+        </button>
+      </div>
+      <div class="header-info">
+        <span id="tanggal-display"></span>
+        <div class="clock" id="clock-display">00:00:00</div>
+      </div>
+    </header>
+
+    <main>
+      <!-- ===== VIEW: KASIR ===== -->
+      <div id="view-kasir" class="view active">
+        <!-- PANEL KIRI: MENU -->
+        <div class="menu-panel">
+          <div class="panel-title">Menu tersedia</div>
+          <div class="menu-grid" id="menu-grid"></div>
+        </div>
+
+        <!-- PANEL KANAN: ORDER -->
+        <div class="order-panel">
+          <div class="order-header">
+            <div class="panel-title" style="margin-bottom: 0">Pesanan</div>
+            <div class="customer-input-row">
+              <label>👤</label>
+              <input
+                type="text"
+                id="customer-name"
+                placeholder="Nama customer..."
+              />
+            </div>
+          </div>
+
+          <div class="order-items" id="order-items">
+            <div class="order-empty">
+              <span class="empty-icon">🛒</span>
+              Belum ada pesanan.<br />Pilih menu untuk menambahkan.
+            </div>
+          </div>
+
+          <div class="order-footer">
+            <div class="total-row">
+              <span class="total-label">Total</span>
+              <span class="total-amount" id="total-display">Rp 0</span>
+            </div>
+
+            <!-- KALKULATOR KEMBALIAN -->
+            <div class="kembalian-section">
+              <div class="kembalian-label">💰 Kalkulator Kembalian</div>
+              <div class="kembalian-row">
+                <input
+                  type="number"
+                  id="bayar-input"
+                  placeholder="Uang dibayar..."
+                  oninput="hitungKembalian()"
+                  min="0"
+                />
+              </div>
+              <div class="quick-cash">
+                <button class="cash-btn" onclick="setBayar(20000)">20rb</button>
+                <button class="cash-btn" onclick="setBayar(20000)">25rb</button>
+                <button class="cash-btn" onclick="setBayar(50000)">50rb</button>
+                <button class="cash-btn" onclick="setBayar(100000)">
+                  100rb
+                </button>
+              </div>
+              <div
+                class="kembalian-result"
+                id="kembalian-result"
+                style="display: none"
+              >
+                <span style="font-size: 12px; color: var(--muted)"
+                  >Kembalian</span
+                >
+                <span class="kembalian-val" id="kembalian-val">Rp 0</span>
+              </div>
+            </div>
+
+            <button
+              class="btn-primary"
+              id="bayar-btn"
+              onclick="prosesBayar()"
+              disabled
+            >
+              Proses Pembayaran
+            </button>
+            <div class="action-row">
+              <button class="btn-secondary" onclick="clearOrder()">
+                🗑 Kosongkan
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== VIEW: RIWAYAT ===== -->
+      <div id="view-riwayat" class="view">
+        <div class="riwayat-header">
+          <h2>Riwayat Transaksi</h2>
+          <div class="riwayat-actions">
+            <span
+              id="tanggal-riwayat"
+              style="
+                font-size: 13px;
+                color: var(--muted);
+                font-family: var(--mono);
+              "
+            ></span>
+            <button class="btn-export" onclick="exportExcel()">
+              📊 Export Excel
+            </button>
+            <button
+              class="btn-secondary"
+              style="font-size: 13px"
+              onclick="clearRiwayat()"
+            >
+              🗑 Hapus Semua
+            </button>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Total Transaksi</div>
+            <div class="stat-value accent" id="stat-trx">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Pendapatan</div>
+            <div class="stat-value green" id="stat-pendapatan">Rp 0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Item Terjual</div>
+            <div class="stat-value amber" id="stat-item">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Rata-rata Transaksi</div>
+            <div class="stat-value" id="stat-avg">Rp 0</div>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Waktu</th>
+                <th>Customer</th>
+                <th>Item Pesanan</th>
+                <th>Total</th>
+                <th>Bayar</th>
+                <th>Kembalian</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="riwayat-tbody"></tbody>
+          </table>
+          <div class="empty-riwayat" id="empty-riwayat">
+            <span class="ei">📋</span>
+            Belum ada transaksi hari ini.
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
